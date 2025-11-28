@@ -113,7 +113,8 @@ class ObjectGoalPromptSensor(Sensor):
         episode: Any,
         **kwargs: Any,
     ) -> Optional[int]:
-        category = episode.object_category if hasattr(episode, "object_category") else ""
+        # category = episode.object_category if hasattr(episode, "object_category") else ""     #PersONAL : Changed
+        category = episode.description[0] #TODO : Does not account for multiple goals
         if self.config.HAS_ATTRIBUTE:
             tokens = category.split("_")
             attr, cat = tokens[0], " ".join(tokens[1:])  # assume one word attributes
@@ -122,6 +123,9 @@ class ObjectGoalPromptSensor(Sensor):
         # use `attr` and `cat` in prompt templates
         prompt = self.config.PROMPT.format(attr=attr, cat=cat)
         return clip.tokenize(prompt, context_length=77).numpy()
+
+
+### PersONAL Sensor
 
 
 @registry.register_sensor

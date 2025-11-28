@@ -9,7 +9,7 @@ export GLOG_minloglevel=2
 export MAGNUM_LOG=quiet
 
 # Activate your conda environment
-source ~/anaconda3/bin/activate personal_zson
+# source /mnt/anaconda3/bin/activate zson
 # (Adjust path if needed — see note below)
 
 # --------------------------
