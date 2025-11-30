@@ -4,7 +4,6 @@
 # Environment setup
 # --------------------------
 
-# These are harmless and useful
 export GLOG_minloglevel=2
 export MAGNUM_LOG=quiet
 

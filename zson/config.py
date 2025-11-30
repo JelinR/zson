@@ -183,6 +183,8 @@ _CONFIG.EVAL_CKPT_PATH_DIR = "data/checkpoints"
 _CONFIG.CHECKPOINT_FOLDER = "data/checkpoints"
 _CONFIG.LOG_FILE = "data/train.log"
 
+_CONFIG.LOG_DIR = "logs/trial"          #PersONAL : Added
+
 _CONFIG.NUM_ENVIRONMENTS = 12
 _CONFIG.LOG_INTERVAL = 10
 _CONFIG.NUM_CHECKPOINTS = 100

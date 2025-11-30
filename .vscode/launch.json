@@ -36,16 +36,20 @@
             "args": [
                     "--exp-config", "configs/experiments/objectnav_personal.yaml",
                     "--run-type", "eval",
-                    "TASK_CONFIG.TASK.SENSORS", "[\"OBJECTGOAL_PROMPT_SENSOR\"]",
                     "TASK_CONFIG.TASK.MEASUREMENTS", "[\"DISTANCE_TO_GOAL\", \"SUCCESS\", \"SPL\", \"SOFT_SPL\", \"AGENT_ROTATION\", \"AGENT_POSITION\"]",
                     "EVAL_CKPT_PATH_DIR", "data/checkpoints/zson_conf_B.pth",
                     "EVAL.SPLIT", "val",
-                    "NUM_ENVIRONMENTS", "20",
                     "TASK_CONFIG.DATASET.DATA_PATH", "data/datasets/PersONAL/val/easy/easy.json.gz",
                     "RL.POLICY.pretrained_encoder", "data/models/omnidata_DINO_02.pth",
                     "RL.REWARD_MEASURE", "distance_to_goal",
                     "RL.POLICY.CLIP_MODEL", "RN50",
-                    "EVAL.episodes_eval_data", "True"
+                    "EVAL.episodes_eval_data", "True",
+
+                    "TASK_CONFIG.TASK.SENSORS", "[\"OBJECTGOAL_PROMPT_SENSOR\"]",
+                    "TASK_CONFIG.DATASET.CONTENT_SCENES", "[\"wcojb4TFT35\"]",
+                    "NUM_ENVIRONMENTS", "1",
+                    "LOG_DIR", "logs/trial/PersONAL/easy",
+                    // "VIDEO_OPTION", "[\"disk\"]"
                 ]
         }
     ]

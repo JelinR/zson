@@ -73,6 +73,59 @@ class PanoramicImageGoalSensor(Sensor):
         return self._current_image_goal
 
 
+# @registry.register_sensor
+# class ObjectGoalPromptSensor(Sensor):
+#     r"""A sensor for Object Goal specification as observations which is used in
+#     ObjectGoal Navigation. The goal is expected to be specified by object_id or
+#     semantic category id, and we will generate the prompt corresponding to it
+#     so that it's usable by CLIP's text encoder.
+#     Args:
+#         sim: a reference to the simulator for calculating task observations.
+#         config: a config for the ObjectGoalPromptSensor sensor. Can contain field
+#             GOAL_SPEC that specifies which id use for goal specification,
+#             GOAL_SPEC_MAX_VAL the maximum object_id possible used for
+#             observation space definition.
+#         dataset: a Object Goal navigation dataset that contains dictionaries
+#         of categories id to text mapping.
+#     """
+#     cls_uuid: str = "objectgoalprompt"
+
+#     def __init__(
+#         self,
+#         *args: Any,
+#         config: Config,
+#         **kwargs: Any,
+#     ):
+#         super().__init__(config=config)
+
+#     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+#         return self.cls_uuid
+
+#     def _get_sensor_type(self, *args: Any, **kwargs: Any):
+#         return SensorTypes.SEMANTIC
+
+#     def _get_observation_space(self, *args: Any, **kwargs: Any):
+#         return spaces.Box(low=0, high=np.inf, shape=(77,), dtype=np.int64)
+
+#     def get_observation(
+#         self,
+#         *args: Any,
+#         episode: Any,
+#         **kwargs: Any,
+#     ) -> Optional[int]:
+#         # category = episode.object_category if hasattr(episode, "object_category") else ""     #PersONAL : Changed
+#         category = episode.description[0] #TODO : Does not account for multiple goals
+#         if self.config.HAS_ATTRIBUTE:
+#             tokens = category.split("_")
+#             attr, cat = tokens[0], " ".join(tokens[1:])  # assume one word attributes
+#         else:
+#             attr, cat = None, category.replace("_", " ")
+#         # use `attr` and `cat` in prompt templates
+#         prompt = self.config.PROMPT.format(attr=attr, cat=cat)
+#         return clip.tokenize(prompt, context_length=77).numpy()
+
+
+### PersONAL Sensor
 @registry.register_sensor
 class ObjectGoalPromptSensor(Sensor):
     r"""A sensor for Object Goal specification as observations which is used in
@@ -98,6 +151,9 @@ class ObjectGoalPromptSensor(Sensor):
     ):
         super().__init__(config=config)
 
+        self.curr_episode_id = None
+        self.curr_goal = None
+
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return self.cls_uuid
 
@@ -113,6 +169,11 @@ class ObjectGoalPromptSensor(Sensor):
         episode: Any,
         **kwargs: Any,
     ) -> Optional[int]:
+        
+        episode_uniq_id = f"{episode.scene_id} {episode.episode_id}"
+        if self.curr_episode_id == episode_uniq_id:
+            return self.curr_goal
+        
         # category = episode.object_category if hasattr(episode, "object_category") else ""     #PersONAL : Changed
         category = episode.description[0] #TODO : Does not account for multiple goals
         if self.config.HAS_ATTRIBUTE:
@@ -122,11 +183,11 @@ class ObjectGoalPromptSensor(Sensor):
             attr, cat = None, category.replace("_", " ")
         # use `attr` and `cat` in prompt templates
         prompt = self.config.PROMPT.format(attr=attr, cat=cat)
-        return clip.tokenize(prompt, context_length=77).numpy()
 
-
-### PersONAL Sensor
-
+        print(f"\nPrompt : {prompt}")
+        self.curr_goal = clip.tokenize(prompt, context_length=77).numpy()
+        self.curr_episode_id = episode_uniq_id
+        return self.curr_goal
 
 @registry.register_sensor
 class CachedGoalSensor(Sensor):

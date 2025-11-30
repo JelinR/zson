@@ -30,6 +30,9 @@ from torch import nn
 
 from zson.ppo import ZSON_DDPPO, ZSON_PPO
 
+# from habitat_baselines.rl.ppo.policy import PolicyActionDatas
+from time import sleep
+
 
 def write_json(data, path):
     with open(path, "w") as file:
@@ -41,6 +44,22 @@ def get_episode_json(episode, reference_replay):
     ep_json["trajectory"] = reference_replay
     return ep_json
 
+
+### PersONAL : Added
+#Get current habitat position for each env
+def get_curr_hab_pos(vec_envs):
+
+    curr_hab_pos = {}
+    for i in range(vec_envs.num_envs):
+
+        agent_state = vec_envs.call_at(index = i,
+                                       function_name = "get_curr_state")
+        curr_hab_pos[i] = agent_state.position
+
+    # print(f" Current Hab position: {agent_state.position}\n  \
+    #          Current Hab rotation: {agent_state.rotation}")
+    return curr_hab_pos
+###
 
 @baseline_registry.register_trainer(name="zson-ddppo")
 @baseline_registry.register_trainer(name="zson-ppo")
@@ -140,6 +159,10 @@ class ZSONTrainer(PPOTrainer):
         if self._is_distributed:
             raise RuntimeError("Evaluation does not support distributed mode")
 
+        #PersONAL : Added
+        assert self.config.NUM_ENVIRONMENTS == 1, "Number of envs should be 1"
+        os.makedirs(self.config.LOG_DIR, exist_ok=True)
+
         # Map location CPU is almost always better than mapping to a CUDA device.
         ckpt_dict = self.load_checkpoint(checkpoint_path, map_location="cpu")
 
@@ -237,16 +260,46 @@ class ZSONTrainer(PPOTrainer):
         while len(stats_episodes) < number_of_eval_episodes and self.envs.num_envs > 0:
             current_episodes = self.envs.current_episodes()
 
-            with torch.no_grad():
-                (_, actions, _, test_recurrent_hidden_states,) = self.actor_critic.act(
-                    batch,
-                    test_recurrent_hidden_states,
-                    prev_actions,
-                    not_done_masks,
-                    deterministic=False,
-                )
+            ## PersONAL : Added
+            ####
+            if not not_done_masks[0].item():
 
-                prev_actions.copy_(actions)  # type: ignore
+                curr_scene_name = os.path.basename(current_episodes[0].scene_id).split(".")[0]
+                curr_ep_id = current_episodes[0].episode_id
+                num_steps = 0
+                init_hab_pos = get_curr_hab_pos(self.envs)[0]
+                ep_pbar = tqdm.tqdm(total=self.config.TASK_CONFIG.ENVIRONMENT.MAX_EPISODE_STEPS)
+
+                print(f"\n\nCurrent Scene Name: {curr_scene_name}")
+                print(f"Current Episode ID: {curr_ep_id}")
+
+                #If Logged file already exists, then skip the current episode.
+                log_file_name = f"{curr_ep_id}_{curr_scene_name}.txt"        
+                log_file_path = os.path.join(self.config.LOG_DIR, log_file_name)
+
+                print(f"\nLog File path: ", log_file_path)
+                skip_episode = os.path.exists(log_file_path)
+
+                if skip_episode:
+                    print(f"\n\n----Logged File already exists at: {log_file_path}.\nSkipping Episode {curr_ep_id} for Scene {curr_scene_name}...")
+            ####
+
+            with torch.no_grad():
+
+                if skip_episode:    ## PersONAL : Added
+                    actions = torch.tensor([[0]], dtype=torch.long)
+                    
+                else:
+
+                    (_, actions, _, test_recurrent_hidden_states,) = self.actor_critic.act(
+                        batch,
+                        test_recurrent_hidden_states,
+                        prev_actions,
+                        not_done_masks,
+                        deterministic=False,
+                    )
+
+                    prev_actions.copy_(actions)  # type: ignore
             action_names = [
                 possible_actions[a.item()] for a in actions.to(device="cpu")
             ]
@@ -271,6 +324,36 @@ class ZSONTrainer(PPOTrainer):
             )
             batch = apply_obs_transforms_batch(batch, self.obs_transforms)
 
+            ### PersONAL : Added
+
+            #Update number of steps
+            num_steps += 1
+            # print(f"Step {num_steps}, Action {actions[0].item()}")
+            ep_pbar.update()
+
+            if (not skip_episode) and actions[0].item() == 0:
+                print(get_curr_hab_pos(self.envs)[0])
+
+            # Save the agent position to txt file
+            if (not skip_episode) and \
+                (num_steps < self.config.TASK_CONFIG.ENVIRONMENT.MAX_EPISODE_STEPS) and \
+                (actions[0].item() != 0):
+                
+                tmp_traj_path = os.path.join(self.config.LOG_DIR, f"tmp.txt")
+                os.makedirs(os.path.dirname(tmp_traj_path), exist_ok = True)
+
+                curr_hab_pos = get_curr_hab_pos(self.envs)[0]
+
+                if num_steps == 1:
+                    with open(tmp_traj_path, "w") as f:
+                        f.write(f"0, {init_hab_pos[0]}, {init_hab_pos[1]}, {init_hab_pos[2]}\n")
+                        f.write(f"1, {curr_hab_pos[0]}, {curr_hab_pos[1]}, {curr_hab_pos[2]}\n")
+                else:
+                    with open(tmp_traj_path, "a") as f:
+                        f.write(f"{num_steps}, {curr_hab_pos[0]}, {curr_hab_pos[1]}, {curr_hab_pos[2]}\n")
+
+            ### 
+
             not_done_masks = torch.tensor(
                 [[not done] for done in dones],
                 dtype=torch.bool,
@@ -294,6 +377,7 @@ class ZSONTrainer(PPOTrainer):
                 # episode ended
                 if not not_done_masks[i].item():
                     pbar.update()
+                    sleep(0.2)
                     episode_stats = {}
                     episode_stats["reward"] = current_episode_reward[i].item()
                     episode_stats.update(self._extract_scalars_from_info(infos[i]))
@@ -307,7 +391,7 @@ class ZSONTrainer(PPOTrainer):
                         )
                     ] = episode_stats
 
-                    if len(self.config.VIDEO_OPTION) > 0:
+                    if (not skip_episode) and len(self.config.VIDEO_OPTION) > 0:
                         generate_video(
                             video_option=self.config.VIDEO_OPTION,
                             video_dir=self.config.VIDEO_DIR,
@@ -322,6 +406,14 @@ class ZSONTrainer(PPOTrainer):
                             tb_writer=writer,
                         )
                         rgb_frames[i] = []
+
+                    ## PersONAL : Added
+                    ####
+                    if (not skip_episode):
+                        tmp_traj_path = os.path.join(self.config.LOG_DIR, f"tmp.txt")
+                        save_traj_path = os.path.join(self.config.LOG_DIR, f"{curr_ep_id}_{curr_scene_name}.txt")
+                        os.rename(tmp_traj_path, save_traj_path)
+                    ####
 
                 # episode continues
                 else:
