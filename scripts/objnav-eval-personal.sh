@@ -8,11 +8,11 @@ CKPT_DIR="data/checkpoints/zson_conf_B.pth"
 # DATA_PATH="data/datasets/PersONAL/val/easy/easy.json.gz"
 # LOG_DIR="logs/PersONAL/easy"
 
-DATA_PATH="data/datasets/PersONAL/val/test_baselines/medium_filt/medium.json.gz"
-LOG_DIR="logs/PersONAL/medium"
+# DATA_PATH="data/datasets/PersONAL/val/test_baselines/medium_filt/medium.json.gz"
+# LOG_DIR="logs/PersONAL/medium"
 
-# DATA_PATH="data/datasets/PersONAL/val/test_baselines/hard_filt/hard.json.gz"
-# LOG_DIR="logs/PersONAL/hard"
+DATA_PATH="data/datasets/PersONAL/val/test_baselines/hard_filt/hard.json.gz"
+LOG_DIR="logs/PersONAL/hard"
 
 set -x
 

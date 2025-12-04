@@ -331,8 +331,8 @@ class ZSONTrainer(PPOTrainer):
             # print(f"Step {num_steps}, Action {actions[0].item()}")
             ep_pbar.update()
 
-            if (not skip_episode) and actions[0].item() == 0:
-                print(get_curr_hab_pos(self.envs)[0])
+            # if (not skip_episode) and actions[0].item() == 0:
+            #     print(get_curr_hab_pos(self.envs)[0])
 
             # Save the agent position to txt file
             if (not skip_episode) and \
