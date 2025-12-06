@@ -33,4 +33,4 @@ TASK:
 
 DATASET:                                #PersONAL : Changed here
   TYPE: Personalized-ObjectNav-v1       
-  DATA_PATH: "data/datasets/PersONAL/val/easy/easy.json.gz"
+  DATA_PATH: "data/datasets/PersONAL/val/test_baselines/easy/easy.json.gz"

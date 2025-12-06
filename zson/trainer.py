@@ -260,6 +260,8 @@ class ZSONTrainer(PPOTrainer):
         while len(stats_episodes) < number_of_eval_episodes and self.envs.num_envs > 0:
             current_episodes = self.envs.current_episodes()
 
+            # print(f"\n\n\n ------ {len(stats_episodes)}, {number_of_eval_episodes}, {self.envs.num_envs} ------ \n\n\n")
+
             ## PersONAL : Added
             ####
             if not not_done_masks[0].item():
@@ -474,4 +476,5 @@ class ZSONTrainer(PPOTrainer):
         if len(metrics) > 0:
             writer.add_scalars("eval_metrics", metrics, step_id)
 
+        print(f"\n\n ------ CLOSING ENVS -----")
         self.envs.close()
