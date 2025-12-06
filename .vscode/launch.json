@@ -51,6 +51,19 @@
                     "LOG_DIR", "logs/trial/PersONAL/easy",
                     // "VIDEO_OPTION", "[\"disk\"]"
                 ]
+        },
+
+        {
+            "name": "ZSON : Eval Results",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "eval_logs.py",
+            "python": "/mnt/anaconda3/envs/personal_zson/bin/python",
+            "args": [
+                "--log_dir", "logs/PersONAL_v2/easy",
+                "--data_content_dir", "data/datasets/PersONAL/val/test_baselines/easy/content",
+            ]
+
         }
     ]
 }
